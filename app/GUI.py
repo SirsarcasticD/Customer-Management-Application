@@ -15,8 +15,6 @@ class Application(tk.Frame):
 
     TODO:
     Make new windows appear in middle of parents. (Use winfo_rootx(), winfo_rooty())
-
-    Auto complete? When typing, make system, wait 1 second and cancel any calls until last one?
     """
 
     def __init__(self, master):
