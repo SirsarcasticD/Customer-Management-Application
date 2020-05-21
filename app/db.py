@@ -9,7 +9,7 @@ class Database:
     Class that directly connects and interacts with the database.
 
     TODO:
-    Create subclass for each relation?
+    Create class for each relation?
     """
 
     def __init__(self, dbname):
@@ -111,9 +111,118 @@ class Database:
         finally:
             self.disconnect()
 
+        # User Table
+        self.connect()
+        sqlQuery = """
+                   CREATE TABLE IF NOT EXISTS User (
+                    username VARCHAR PRIMARY KEY,
+                    password VARCHAR NOT NULL,
+                    status   BOOLEAN DEFAULT (1) 
+                    );
+                    """
+        try:
+            self.cursor.execute(sqlQuery)
+            self.conn.commit()
+        except:
+            print('Error initializing User table')
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+
+        # Insert the Admin user
+        self.connect()
+        sqlQuery = """
+                    INSERT INTO User 
+                    SELECT 'admin', 'password', '0'
+                    WHERE NOT EXISTS (SELECT username FROM User
+                                      WHERE username = 'admin'
+                                      );
+                    """
+        try:
+            self.cursor.execute(sqlQuery)
+            self.conn.commit()
+        except:
+            print('Error adding admin to user table')
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+
+        # Permission Table
+        # NOTE: If ever add permissions columns, it is advised to add them to the getPermissions() method, and
+        #       the dictionary within that method that it returns
+        self.connect()
+        sqlQuery = """
+                    CREATE TABLE IF NOT EXISTS Permission (
+                        user                    VARCHAR REFERENCES User (username) PRIMARY KEY,
+                        login                   BOOLEAN DEFAULT (0),
+                        edit_customer_btn       BOOLEAN DEFAULT (0),
+                        delete_customer_btn     BOOLEAN DEFAULT (0),
+                        delete_all_customer_btn BOOLEAN DEFAULT (0),
+                        add_customer_btn        BOOLEAN DEFAULT (0),
+                        analyze_customer_btn    BOOLEAN DEFAULT (0) 
+                    );
+
+                    """
+        try:
+            self.cursor.execute(sqlQuery)
+            self.conn.commit()
+        except:
+            print('Error initializing Permission table')
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+
+        # Grant Admin all permissions
+        self.connect()
+        sqlQuery = """
+                    INSERT INTO Permission (user, login, edit_customer_btn, delete_customer_btn, delete_all_customer_btn,
+                                            add_customer_btn, analyze_customer_btn)
+                    SELECT 'admin', '1', '1', '1', '1', '1', '1'
+                    WHERE NOT EXISTS (SELECT user FROM Permission WHERE user = 'admin');
+                    """
+        try:
+            self.cursor.execute(sqlQuery)
+            self.conn.commit()
+        except:
+            print('Error initializing admin permissions')
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+
+
+        self.connect()
+        sqlQuery = """
+                    CREATE TABLE IF NOT EXISTS request (
+                    email VARCHAR PRIMARY KEY
+                    ); 
+                   """
+        try:
+            self.cursor.execute(sqlQuery)
+            self.conn.commit()
+        except:
+            print('Error initializing request table')
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+
+        self.populateEconomicRegions()
+
         return True
 
-    def login(self, user, passw):
+    def validateUserLoginCredentials(self, user, passw):
+
+        """
+        Function to validate username and password match in the database
+
+        :param user:
+        :param passw:
+        :return:
+        """
 
         self.connect()
         sqlQuery = """
@@ -130,6 +239,43 @@ class Database:
         finally:
             self.disconnect()
         return data
+
+    def getPermissions(self, user):
+
+        """
+        Function to retrieve the permissions of a given user on the accessibility of certain buttons/functions
+        of the application. It will return a dictionary of the given functionality and its permission as a boolean.
+        1 for permitted, 0 for not permitted.
+
+        :param user: The unique username of the user
+        :return: Permissions: A dictionary of functionalities as string keys and permissions boolean values
+        """
+
+        self.connect()
+        sqlQuery = """
+                 SELECT login, edit_customer_btn, delete_customer_btn, delete_all_customer_btn, add_customer_btn,
+                        analyze_customer_btn FROM Permission
+                 WHERE user = ?;
+                 """
+        sqlTuple = (user,)
+        try:
+            self.cursor.execute(sqlQuery, sqlTuple)
+            data = self.cursor.fetchall()
+        except:
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+
+        permissions = {'login': data[0][0],
+                       'edit_customer_btn': data[0][1],
+                       'delete_customer_btn': data[0][2],
+                       'delete_all_customer_btn': data[0][3],
+                       'add_customer_btn': data[0][4],
+                       'analyze_customer_btn': data[0][5]
+                       }
+
+        return permissions
 
     def populateEconomicRegions(self):
 
@@ -393,7 +539,7 @@ class Database:
 
         self.connect()
         sqlQuery = """
-                  SELECT eruid, (SELECT COUNT(*) FROM customer WHERE city = eruid)
+                  SELECT eruid, (SELECT COUNT(*) FROM customer WHERE region = eruid)
                   FROM economic_region;
                   """
         try:
@@ -468,3 +614,287 @@ class Database:
         finally:
             self.disconnect()
         return data
+
+    def getRequests(self):
+
+        """
+
+        :return:
+        """
+
+        self.connect()
+        sqlQuery = """
+                 SELECT email FROM request;
+                 """
+        try:
+            self.cursor.execute(sqlQuery)
+            data = self.cursor.fetchall()
+        except:
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+        return data
+
+    def addUser(self, email, password):
+
+        """
+
+        :return:
+        """
+
+        defaultStatus = 1
+
+        self.connect()
+        sqlQuery = """
+                     INSERT INTO User (username,password,status)
+                     SELECT ?, ?, ?;
+                   """
+        try:
+            sqlTuple = (email, password, defaultStatus)
+            self.cursor.execute(sqlQuery, sqlTuple)
+            self.conn.commit()
+        except:
+            traceback.print_stack()
+        finally:
+            self.disconnect()
+        return True
+
+    def setPermissions(self, email, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var):
+
+        """
+
+
+        :param email:
+        :param login_var:
+        :param edit_var:
+        :param delete_var:
+        :param delete_all_var:
+        :param add_var:
+        :param analyze_var:
+        :return:
+        """
+        self.connect()
+        try:
+            sqlQuery = """
+                            INSERT INTO permission (user, login, edit_customer_btn, delete_customer_btn, delete_all_customer_btn, add_customer_btn, analyze_customer_btn)
+                            SELECT ?, ?, ?, ?, ?, ?, ?;
+                            """
+            sqlTuple = (email, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var)
+            self.cursor.execute(sqlQuery, sqlTuple)
+            self.conn.commit()
+        except:
+            return False
+        finally:
+            self.disconnect()
+
+        return True
+
+    def changeUserPermissions(self, email, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var):
+
+        """
+
+        :param email:
+        :param login_var:
+        :param edit_var:
+        :param delete_var:
+        :param delete_all_var:
+        :param add_var:
+        :param analyze_var:
+        :return:
+        """
+
+        self.connect()
+        try:
+            sqlQuery = """
+                       UPDATE permission
+                       SET login = ?,
+                           edit_customer_btn = ?,
+                           delete_customer_btn = ?,
+                           delete_all_customer_btn = ?,
+                           add_customer_btn = ?,
+                           analyze_customer_btn = ?
+                       WHERE user = ?;
+                       """
+            sqlTuple = (login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var, email)
+            self.cursor.execute(sqlQuery, sqlTuple)
+            self.conn.commit()
+        except:
+            return False
+        finally:
+            self.disconnect()
+
+        return True
+
+    def submitRequest(self, email):
+
+        """
+
+        :param email:
+        :return:
+        """
+
+        self.connect()
+        sqlQuery = """
+                     INSERT INTO request (email)
+                     SELECT ?;
+                   """
+
+        sqlTuple = (email,)
+        try:
+            self.cursor.execute(sqlQuery, sqlTuple)
+            self.conn.commit()
+        except:
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+        return True
+
+    def checkReqeustExists(self, email):
+
+        """
+
+        :param email:
+        :return:
+        """
+
+        self.connect()
+        sqlQuery = """
+                     SELECT email FROM request
+                     WHERE email = ?;
+                   """
+
+        sqlTuple = (email,)
+        try:
+            self.cursor.execute(sqlQuery, sqlTuple)
+            data = self.cursor.fetchall()
+        except:
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+        return data
+
+    def removeRequest(self, email):
+
+        """
+
+        :param email:
+        :return:
+        """
+
+        self.connect()
+        sqlQuery = """
+                    DELETE FROM request
+                    WHERE email = ?;
+                   """
+
+        sqlTuple = (email,)
+        try:
+            self.cursor.execute(sqlQuery, sqlTuple)
+            self.conn.commit()
+        except:
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+        return True
+
+    def checkUserExists(self, email):
+
+        """
+
+        :return:
+        """
+
+        self.connect()
+        sqlQuery = """
+                    SELECT username FROM User
+                    WHERE username = ?;
+                  """
+
+        sqlTuple = (email,)
+        try:
+            self.cursor.execute(sqlQuery, sqlTuple)
+            data = self.cursor.fetchall()
+        except:
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+        return data
+
+    def deleteUser(self, username):
+
+        """
+
+        :return:
+        """
+
+        self.connect()
+        sqlQuery = """
+                    DELETE FROM User
+                    WHERE username = ?;
+                   """
+        try:
+            sqlTuple = (username,)
+            self.cursor.execute(sqlQuery, sqlTuple)
+            self.conn.commit()
+        except:
+            traceback.print_stack()
+        finally:
+            self.disconnect()
+        return True
+
+    def usernameContaining(self, user_input):
+
+        """
+
+        :param user_input:
+        :return:
+        """
+
+        user_input = user_input + '%'
+
+        self.connect()
+        sqlQuery = """
+                           SELECT username FROM User
+                           WHERE username LIKE ?
+                           LIMIT 10;
+                           """
+        sqlTuple = (user_input,)
+        try:
+            self.cursor.execute(sqlQuery, sqlTuple)
+            data = self.cursor.fetchall()
+        except:
+            traceback.print_stack()
+            return False
+        finally:
+            self.disconnect()
+
+        return data
+
+        return
+
+    def deletePermissions(self, username):
+
+        """
+
+               :return:
+               """
+
+        self.connect()
+        sqlQuery = """
+                           DELETE FROM Permission
+                           WHERE user = ?;
+                          """
+        try:
+            sqlTuple = (username,)
+            self.cursor.execute(sqlQuery, sqlTuple)
+            self.conn.commit()
+        except:
+            return False
+        finally:
+            self.disconnect()
+        return True

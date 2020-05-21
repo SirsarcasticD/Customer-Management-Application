@@ -2,15 +2,17 @@
 from db import Database
 from Utils import *
 import Scripts
+import random
 #
-
-
 
 # External dependencies
 from datetime import datetime
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import pickle
 #
+
+# Dependency for email
+import smtplib
 
 # External dependencies for regional map visualization
 import pandas
@@ -47,7 +49,13 @@ class Backend:
         self.recordLimit = 1000
 
         # Current user username
-        self.user = None
+        self.user = ''
+
+        # Current user's permissions in the application
+        self.permissions = {}
+
+        # Email setting
+        self.email = False
 
     def login(self, user_username, user_password, response_msg):
 
@@ -61,14 +69,40 @@ class Backend:
         :return: Successfulness of function
         """
 
-        response = self.db.login(user_username, user_password)
+        # No input
+        if user_username == '' and user_password == '':
+            return
 
+        # Check username and password
+        response = self.db.validateUserLoginCredentials(user_username, user_password)
+
+        # Username and password did not match
         if len(response) == 0:
             response_msg.set('That username and password did not match.')
             return False
 
-        self.user = response[0][0]
-        self.app.customerMenu()
+        # Get permissions of user
+        self.permissions = self.db.getPermissions(user_username)
+
+        # User has a record in user table but permissions have not been set
+        if len(self.permissions) < 1:
+            response_msg.set('Please contact the administrator')
+            return False
+
+        # If its admin, go to admin menu
+        if user_username == 'admin':
+            self.user = user_username
+            self.app.adminMenu()
+            return True
+        else:
+            # Allow login if user has permission
+            if self.permissions['login'] == 1:
+                self.user = user_username
+                self.app.customerMenu()
+            else:
+                response_msg.set('Please contact the administrator')
+                return False
+
         return True
 
     def checkEmailExists(self, email, check_msg):
@@ -139,7 +173,7 @@ class Backend:
         for i, value in enumerate(stringData):
             if value is None:
                 continue
-            if customerTableAttributes[i] is 'Region:':
+            if customerTableAttributes[i] is 'Region: ':
                 value = self.db.getErnameFromEruid(value)[0][0]
             output = customerTableAttributes[i] + value
             cust_list.insert(i, output)
@@ -284,46 +318,61 @@ class Backend:
     def autoCompleteEmail(self, autoCompleteList, user_input):
 
         """
+        Function to populate dropdown list with emails that begin with the string in user_input.
 
-        :param user_input:
+        :param autoCompleteList: A tkinter listbox
+        :param user_input: The string given by the user
         :return:
         """
 
-        # Clear widget of any text and hide
+        # Hide and clear widget of any text
         autoCompleteList.delete(0, 'end')
         autoCompleteList.place_forget()
 
+        # Do nothing if input is empty
         if user_input is '':
             return
 
+        # Get emails that begin with user_input string
         data = self.db.emailsContaining(user_input)
 
+        # If there are no emails. Do nothing
         if len(data) < 1:
             return
 
+        # Populate list
         for i, email in enumerate(data):
             autoCompleteList.insert(i, email)
 
-        autoCompleteList.place(x=188, y=68)
+        # Display list
+        autoCompleteList.place(x=215, y=86)
 
-        return
+        return True
 
     def selectFromAutoComplete(self, autoCompleteList, user_input_field):
 
         """
+        Function to populate the user_input_field, which is an entry, with the email selected by the user.
+        The email is selected from the autoCompleteList listbox object.
 
+        :param autoCompleteList: A listbox containing emails
+        :param user_input_field: The entry field for searching customers
         :return:
         """
 
+        # Ensure 1 and only 1 email is selected from list
         clicked_items = autoCompleteList.curselection()
         if len(clicked_items) > 1 or len(clicked_items) < 1:
             return False
-        clicked_item_index = clicked_items[0]
 
+        # Get email from list
+        clicked_item_index = clicked_items[0]
         selected_email = autoCompleteList.get(clicked_item_index)[0]
 
+        # Set entry value to email
         user_input_field.set(selected_email)
 
+        # Hide listbox
         autoCompleteList.place_forget()
 
         return True
@@ -331,7 +380,7 @@ class Backend:
     def updateCustomer(self, attribute, user_input, email, editWindow, cust_list, delete_btn):
 
         """
-        Function to update customer data that user has input through edit window
+        Function to update customer record data that user has input through edit window.
 
         :param attribute:
         :param user_input:
@@ -342,6 +391,7 @@ class Backend:
         :return:
         """
 
+        # Dictionary mapping of the column names to their front end equivalent name
         attributes = {'Email': 'email',
                       'Password': 'pword',
                       'First name': 'fname',
@@ -359,20 +409,25 @@ class Backend:
                       'Birthday': 'bday',
                       }
 
+        # Get column name from front end equivalent name
         attribute = attributes[attribute]
 
+        # Update customer data
         data = self.db.updateCustomer(attribute, user_input, email)
 
-        if data is True:
-            self.getCustomerInfo(email, cust_list, delete_btn)
-            self.app.confirmEditWindow(editWindow)
+        if data is False:
+            print('Could not update customer info.')
+            return False
+
+        self.getCustomerInfo(email, cust_list, delete_btn)
+        self.app.confirmEditWindow(editWindow)
 
         return True
 
     def enableEditBtn(self):
 
         """
-        Function to enable edit button if user selects one and only one item in the list box
+        Function to enable edit button if user selects one and only one item in the list box.
 
         :return:
         """
@@ -410,8 +465,13 @@ class Backend:
 
         :param number_input: The number of records to generate
         :param feedback_msg: The StringVar() object from the gui
+        :param limit_current_msg:
         :return: Successfulness of function
         """
+
+        # Computation in progress feedback message
+        feedback_msg.set('Generating...')
+        self.window.update()
 
         number_input_String = number_input.get()
         number_input_String = number_input_String.lstrip('0')
@@ -515,6 +575,10 @@ class Backend:
     def plotCustomerRegion(self, loading_msg):
 
         """
+        Function to plot a choropleth map.(https://en.wikipedia.org/wiki/Choropleth_map)
+        Each region is shaded darker according to how many customers are from that region.
+        A darker region indicates more customers, and vice versa.
+
         TO DO:
         Make toolbar available.
 
@@ -533,7 +597,9 @@ class Backend:
             loading_msg.set('No data to visualize')
             return False
 
-        loading_msg.set('Generating map...')
+        # Feedback to inform user of progress
+        loading_msg.set('Generating map...this may take a moment.')
+        self.window.update()
 
         # Get .shp file data stored as pickle for faster retrieval
         # Source https://library.carleton.ca/find/gis/geospatial-data/shapefiles-canada-united-states-and-world
@@ -606,3 +672,547 @@ class Backend:
         for val in data:
             regions.append(val[0])
         return regions
+
+    def getRequests(self, request_list, request_notification):
+
+        """
+
+        :param request_list:
+        :return:
+        """
+
+        data = self.db.getRequests()
+
+        numOfRequests = len(data)
+
+        request_notification.set("There's " + str(numOfRequests) + " new request(s).")
+
+        request_list.delete(0, 'end')
+        for i, email in enumerate(data):
+
+            request_list.insert(i, email)
+
+        return True
+
+    def enableApproveAndDeclineBtn(self, request_feedback):
+
+
+        """
+        Function to enable approve button if user selects one and only one item (email) in the
+        requests list box
+
+        :return:
+        """
+
+        # Clear feedback
+        request_feedback.set('')
+
+        # Get buttons
+        approve_btn = self.window.nametowidget('approve_btn')
+        decline_btn = self.window.nametowidget('decline_btn')
+
+        # Get checkboxes
+        login_checkbox = self.window.nametowidget('login_permission')
+        edit_checkbox = self.window.nametowidget('edit_permission')
+        delete_checkbox = self.window.nametowidget('delete_permission')
+        delete_all_checkbox = self.window.nametowidget('delete_all_permission')
+        add_checkbox = self.window.nametowidget('add_permission')
+        analyze_checkbox = self.window.nametowidget('analyze_permission')
+
+        # get requests listbox
+        list_box = self.window.nametowidget('requests')
+
+        # Check if selected 1 and only 1 item
+        clicked_items = list_box.curselection()
+        if len(clicked_items) > 1 or len(clicked_items) < 1:
+            return False
+
+        request_feedback.set('Choose permissions')
+
+        # Enable buttons and checkboxes
+        approve_btn['state'] = 'normal'
+        decline_btn['state'] = 'normal'
+        login_checkbox['state'] = 'normal'
+        edit_checkbox['state'] = 'normal'
+        delete_checkbox['state'] = 'normal'
+        delete_all_checkbox['state'] = 'normal'
+        add_checkbox['state'] = 'normal'
+        analyze_checkbox['state'] = 'normal'
+
+        return True
+
+    def disableApproveAndDeclineBtn(self, request_feedback):
+
+        """
+
+        :return:
+        """
+
+        # Clear feedback
+        request_feedback.set('')
+
+        # Get buttons
+        approve_btn = self.window.nametowidget('approve_btn')
+        decline_btn = self.window.nametowidget('decline_btn')
+
+        # Get checkboxes
+        login_checkbox = self.window.nametowidget('login_permission')
+        edit_checkbox = self.window.nametowidget('edit_permission')
+        delete_checkbox = self.window.nametowidget('delete_permission')
+        delete_all_checkbox = self.window.nametowidget('delete_all_permission')
+        add_checkbox = self.window.nametowidget('add_permission')
+        analyze_checkbox = self.window.nametowidget('analyze_permission')
+
+        # Enable buttons and checkboxes
+        approve_btn['state'] = 'disable'
+        decline_btn['state'] = 'disable'
+        login_checkbox['state'] = 'disable'
+        edit_checkbox['state'] = 'disable'
+        delete_checkbox['state'] = 'disable'
+        delete_all_checkbox['state'] = 'disable'
+        add_checkbox['state'] = 'disable'
+        analyze_checkbox['state'] = 'disable'
+
+        return
+
+    def approveUser(self, request_notification, request_feedback, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var):
+
+        """
+        Function to add user to database. It is invoked by the approve button. It add a user using the email selected
+        in the reqeuests listbox. Permissions are set according to their values selected by the admin.
+
+        :return:
+        """
+
+        # Get requests listbox
+        requests_listbox = self.window.nametowidget('requests')
+
+        # Get email selected
+        clicked_items = requests_listbox.curselection()
+        if len(clicked_items) > 1 or len(clicked_items) < 1:
+            return False
+        clicked_item_index = clicked_items[0]
+        email = requests_listbox.get(clicked_item_index)[0]
+
+        # Random password
+        password = random.randint(1111111, 9999999)
+
+        # Add email to users
+        add_user_response = self.db.addUser(email, password)
+
+        # Remove requests
+        feedback = ''
+        if add_user_response is True:
+            dlt_respone = self.db.removeRequest(email)
+            if dlt_respone is True:
+                feedback += 'User approved. '
+            else:
+                feedback += ' Unable to remove request. Contact db admin. '
+
+        # Set permissions
+        permission_response = self.db.setPermissions(email, login_var.get(), edit_var.get(), delete_var.get(), delete_all_var.get(), add_var.get(), analyze_var.get())
+
+        if permission_response is True:
+            feedback += 'Permissions successfully set. '
+        else:
+            feedback += 'Failed to set permissions. '
+
+        # Refresh requests
+        self.getRequests(requests_listbox, request_notification)
+
+            # Reset and disable checkboxes and buttons
+        # Get buttons
+        approve_btn = self.window.nametowidget('approve_btn')
+        decline_btn = self.window.nametowidget('decline_btn')
+
+        # Get checkboxes
+        login_checkbox = self.window.nametowidget('login_permission')
+        edit_checkbox = self.window.nametowidget('edit_permission')
+        delete_checkbox = self.window.nametowidget('delete_permission')
+        delete_all_checkbox = self.window.nametowidget('delete_all_permission')
+        add_checkbox = self.window.nametowidget('add_permission')
+        analyze_checkbox = self.window.nametowidget('analyze_permission')
+
+        # Disable
+        approve_btn['state'] = 'disable'
+        decline_btn['state'] = 'disable'
+        login_checkbox['state'] = 'disable'
+        edit_checkbox['state'] = 'disable'
+        delete_checkbox['state'] = 'disable'
+        delete_all_checkbox['state'] = 'disable'
+        add_checkbox['state'] = 'disable'
+        analyze_checkbox['state'] = 'disable'
+
+        # Reset checkboxes
+        login_var.set(0)
+        edit_var.set(0)
+        delete_var.set(0)
+        delete_all_var.set(0)
+        add_var.set(0)
+        analyze_var.set(0)
+
+        # Email new user with credentials
+        if self.email is True:
+            email_response = self.emailNewUserCredentials(email, password)
+
+            if email_response is True:
+                feedback += 'Email successfully sent. '
+            else:
+                feedback += 'Failed to send email to user. '
+        else:
+            feedback += 'Email setting turned off, email not sent.'
+
+        # Respond to app user
+        request_feedback.set(feedback)
+
+        return True
+
+    def declineUser(self, request_notification, request_feedback, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var):
+
+        """
+        Function to decline an account request. The email selected by the admin within the requests listbox will
+        be removed from the requests table.
+
+        :param request_notification:
+        :param request_feedback:
+        :return:
+        """
+
+        requests_listbox = self.window.nametowidget('requests')
+
+        # Get selected request email
+        clicked_items = requests_listbox.curselection()
+        if len(clicked_items) > 1 or len(clicked_items) < 1:
+            return False
+        clicked_item_index = clicked_items[0]
+        email = requests_listbox.get(clicked_item_index)[0]
+
+        # Remove request
+        response = self.db.removeRequest(email)
+
+        # Respond to user
+        if response is True:
+            request_feedback.set('Request successfully declined.')
+        else:
+            request_feedback.set('Failed to remove request. Contact db admin.')
+            return False
+
+        # Refresh requests listbox
+        self.getRequests(requests_listbox, request_notification)
+
+            # Reset and disable checkboxes and buttons
+        # Get buttons
+        approve_btn = self.window.nametowidget('approve_btn')
+        decline_btn = self.window.nametowidget('decline_btn')
+
+        # Get checkboxes
+        login_checkbox = self.window.nametowidget('login_permission')
+        edit_checkbox = self.window.nametowidget('edit_permission')
+        delete_checkbox = self.window.nametowidget('delete_permission')
+        delete_all_checkbox = self.window.nametowidget('delete_all_permission')
+        add_checkbox = self.window.nametowidget('add_permission')
+        analyze_checkbox = self.window.nametowidget('analyze_permission')
+
+        # Disable
+        approve_btn['state'] = 'disable'
+        decline_btn['state'] = 'disable'
+        login_checkbox['state'] = 'disable'
+        edit_checkbox['state'] = 'disable'
+        delete_checkbox['state'] = 'disable'
+        delete_all_checkbox['state'] = 'disable'
+        add_checkbox['state'] = 'disable'
+        analyze_checkbox['state'] = 'disable'
+
+        # Reset checkboxes
+        login_var.set(0)
+        edit_var.set(0)
+        delete_var.set(0)
+        delete_all_var.set(0)
+        add_var.set(0)
+        analyze_var.set(0)
+
+        return True
+
+    def submitRequest(self, email, email_rsp):
+
+        """
+        Function to submit request for an account. These requests will appear in the admin menu.
+
+        :param email:
+        :return:
+        """
+
+        if email == '':
+            return
+
+        # Check if email already exists within requests
+        data = self.db.checkReqeustExists(email)
+
+        # Email already exists
+        if len(data) > 0:
+            email_rsp.set('Request already submitted with that email.')
+            return False
+
+        # Check if email is already used for a user
+        data = self.db.checkUserExists(email)
+
+        # Email already in use
+        if len(data) > 0:
+            email_rsp.set('Cannot use that email.')
+            return False
+
+        # Submit request
+        response = self.db.submitRequest(email)
+
+        # Resond to user
+        if response is True:
+            email_rsp.set('Account request submitted.\nIf approved you will receive an email with your login credentials.')
+        else:
+            email_rsp.set('There was a problem submitting the request.')
+
+        return True
+
+    def searchUser(self, username, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var, search_fdbk):
+
+        response = self.db.checkUserExists(username)
+
+        if len(response) < 1:
+            search_fdbk.set('No user with that username')
+            return False
+
+        # If user exists
+        permissions = self.db.getPermissions(username)
+
+        # Set checkbox values to user current permissions
+        login_var.set(permissions['login'])
+        edit_var.set(permissions['edit_customer_btn'])
+        delete_var.set(permissions['delete_customer_btn'])
+        delete_all_var.set(permissions['delete_all_customer_btn'])
+        add_var.set(permissions['add_customer_btn'])
+        analyze_var.set(permissions['analyze_customer_btn'])
+
+        # Get checkboxes
+        login_checkbox = self.window.nametowidget('login_permission')
+        edit_checkbox = self.window.nametowidget('edit_permission')
+        delete_checkbox = self.window.nametowidget('delete_permission')
+        delete_all_checkbox = self.window.nametowidget('delete_all_permission')
+        add_checkbox = self.window.nametowidget('add_permission')
+        analyze_checkbox = self.window.nametowidget('analyze_permission')
+
+        # Get buttons
+        change_perm_btn = self.window.nametowidget('change_permissions_btn')
+        delete_user_btn = self.window.nametowidget('delete_user_btn')
+
+        # Set checkbox states to normal
+        login_checkbox['state'] = 'normal'
+        edit_checkbox['state'] = 'normal'
+        delete_checkbox['state'] = 'normal'
+        delete_all_checkbox['state'] = 'normal'
+        add_checkbox['state'] = 'normal'
+        analyze_checkbox['state'] = 'normal'
+
+        # Set button states to normal
+        change_perm_btn['state'] = 'normal'
+        delete_user_btn['state'] = 'normal'
+
+        return True
+
+    def emailNewUserCredentials(self, user_email, user_password):
+
+        """
+
+        :return:
+        """
+
+        sender_email = 'thisisarandomemail000@gmail.com'
+        sender_password = 'wordofpassage'
+
+        message = "Your Customer Management System account has been approved. Here are your credentials.\n\n"\
+                  "Username: " + str(user_email) + '\n'\
+                  "Password: " + str(user_password)
+
+        try:
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+        except:
+            print('Could not connect to server')
+            return False
+        try:
+            server.starttls()
+        except:
+            print('Problem on server end')
+            return False
+        try:
+            server.login(sender_email, sender_password)
+        except:
+            print('Failed to log in to app account')
+            return False
+        try:
+            server.sendmail(sender_email, user_email, message)
+        except:
+            print('Failed to send email to new user')
+            return False
+
+        return True
+
+    def changeUserPermissions(self, username, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var, user_fdbk):
+
+        """
+
+        :param username:
+        :param login_var:
+        :param edit_var:
+        :param delete_var:
+        :param delete_all_var:
+        :param add_var:
+        :param analyze_var:
+        :param user_fdbk:
+        :return:
+        """
+
+        response = self.db.changeUserPermissions(username, login_var.get(), edit_var.get(), delete_var.get(), delete_all_var.get(), add_var.get(), analyze_var.get())
+
+        if response is True:
+            user_fdbk.set('Successfully set permissions.')
+        else:
+            user_fdbk.set('Failed to set permissions. Contact db admin.')
+
+        return True
+
+    # Add resetting of checkboxes?
+    def deleteUser(self, username, user_fdbk):
+
+        """
+
+        :param username:
+        :param search_fdbk:
+        :return:
+        """
+
+        feedback = ''
+
+        response = self.db.deleteUser(username)
+
+        if response is True:
+            feedback += 'User successively deleted.\n'
+        else:
+            feedback += 'User could not be deleted. Contact db admin.\n'
+
+        response = self.db.deletePermissions(username)
+
+        if response is True:
+            feedback += 'Permissions successively deleted.\n'
+        else:
+            feedback += 'Permissions could not be deleted. Contact db admin.\n'
+
+        user_fdbk.set(feedback)
+
+            # Disable buttons and checkboxes
+
+        # Get checkboxes
+        login_checkbox = self.window.nametowidget('login_permission')
+        edit_checkbox = self.window.nametowidget('edit_permission')
+        delete_checkbox = self.window.nametowidget('delete_permission')
+        delete_all_checkbox = self.window.nametowidget('delete_all_permission')
+        add_checkbox = self.window.nametowidget('add_permission')
+        analyze_checkbox = self.window.nametowidget('analyze_permission')
+
+        # Get buttons
+        delete_user_btn = self.window.nametowidget('delete_user_btn')
+        change_perm_btn = self.window.nametowidget('change_permissions_btn')
+
+        # Set checkbox states to normal
+        login_checkbox['state'] = 'disabled'
+        edit_checkbox['state'] = 'disabled'
+        delete_checkbox['state'] = 'disabled'
+        delete_all_checkbox['state'] = 'disabled'
+        add_checkbox['state'] = 'disabled'
+        analyze_checkbox['state'] = 'disabled'
+
+        # Set button states to normal
+        delete_user_btn['state'] = 'disabled'
+        change_perm_btn['state'] = 'disabled'
+
+        return
+
+    def autoCompleteUser(self, autoCompleteList, user_input, user_fdbk, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var):
+
+        """
+
+        :param auto_complete_list:
+        :param user_input:
+        :return:
+        """
+
+        # Clear feedback
+        user_fdbk.set('')
+
+        # Clear widget of any text and hide
+        autoCompleteList.delete(0, 'end')
+        autoCompleteList.place_forget()
+
+        # Get checkboxes
+        login_checkbox = self.window.nametowidget('login_permission')
+        edit_checkbox = self.window.nametowidget('edit_permission')
+        delete_checkbox = self.window.nametowidget('delete_permission')
+        delete_all_checkbox = self.window.nametowidget('delete_all_permission')
+        add_checkbox = self.window.nametowidget('add_permission')
+        analyze_checkbox = self.window.nametowidget('analyze_permission')
+
+        # Get buttons
+        delete_user_btn = self.window.nametowidget('delete_user_btn')
+        change_perm_btn = self.window.nametowidget('change_permissions_btn')
+
+        # Set checkbox states to normal
+        login_checkbox['state'] = 'disabled'
+        edit_checkbox['state'] = 'disabled'
+        delete_checkbox['state'] = 'disabled'
+        delete_all_checkbox['state'] = 'disabled'
+        add_checkbox['state'] = 'disabled'
+        analyze_checkbox['state'] = 'disabled'
+
+        # Reset checkbox values
+        login_var.set(0)
+        edit_var.set(0)
+        delete_var.set(0)
+        delete_all_var.set(0)
+        add_var.set(0)
+        analyze_var.set(0)
+
+        # Set button states to normal
+        delete_user_btn['state'] = 'disabled'
+        change_perm_btn['state'] = 'disabled'
+
+        if user_input is '':
+            return False
+
+        data = self.db.usernameContaining(user_input)
+
+        if len(data) < 1:
+            return False
+
+        for i, email in enumerate(data):
+            autoCompleteList.insert(i, email)
+
+        autoCompleteList.place(x=500, y=416)
+
+        return True
+
+    def selectFromAutoCompleteUser(self, autoCompleteList, user_input_field):
+
+        """
+
+        :return:
+        """
+
+        clicked_items = autoCompleteList.curselection()
+        if len(clicked_items) > 1 or len(clicked_items) < 1:
+            return False
+        clicked_item_index = clicked_items[0]
+
+        selected_email = autoCompleteList.get(clicked_item_index)[0]
+
+        user_input_field.set(selected_email)
+
+        autoCompleteList.place_forget()
+
+        return True
