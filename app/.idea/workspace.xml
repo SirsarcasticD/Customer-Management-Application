@@ -13,10 +13,23 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/GUI.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="393">
-              <caret line="30" column="23" lean-forward="true" selection-start-line="30" selection-start-column="23" selection-end-line="30" selection-end-column="23" />
+            <state relative-caret-position="135">
+              <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
               <folding>
                 <element signature="e#0#20#0" expanded="true" />
+                <element signature="e#268#1180#0" />
+                <element signature="e#1215#4776#0" />
+                <element signature="e#4812#11363#0" />
+                <element signature="e#11402#15728#0" />
+                <element signature="e#15773#17797#0" />
+                <element signature="e#17855#23629#0" />
+                <element signature="e#23711#25368#0" />
+                <element signature="e#27524#27785#0" />
+                <element signature="e#27832#28869#0" />
+                <element signature="e#28915#29233#0" />
+                <element signature="e#29272#30369#0" />
+                <element signature="e#30406#30625#0" />
+                <element signature="e#30663#30784#0" />
               </folding>
             </state>
           </provider>
@@ -25,11 +38,10 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Backend.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="180">
-              <caret line="29" selection-start-line="29" selection-end-line="29" />
+            <state relative-caret-position="225">
+              <caret line="392" column="4" lean-forward="true" selection-start-line="392" selection-start-column="4" selection-end-line="392" selection-end-column="4" />
               <folding>
                 <element signature="e#21#44#0" expanded="true" />
-                <element signature="e#592#1321#0" />
               </folding>
             </state>
           </provider>
@@ -118,10 +130,10 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="1">
-    <option name="x" value="979" />
+  <component name="ProjectFrameBounds">
+    <option name="x" value="461" />
     <option name="y" value="23" />
-    <option name="width" value="941" />
+    <option name="width" value="780" />
     <option name="height" value="997" />
   </component>
   <component name="ProjectView">
@@ -215,7 +227,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="979" y="23" width="941" height="997" extended-state="0" />
+    <frame x="1140" y="23" width="780" height="997" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" weight="0.3155929" />
@@ -332,27 +344,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/GUI.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="393">
-          <caret line="30" column="23" lean-forward="true" selection-start-line="30" selection-start-column="23" selection-end-line="30" selection-end-column="23" />
-          <folding>
-            <element signature="e#0#20#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Backend.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="29" selection-start-line="29" selection-end-line="29" />
-          <folding>
-            <element signature="e#21#44#0" expanded="true" />
-            <element signature="e#592#1321#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/db.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="105">
@@ -384,6 +375,39 @@
             <element signature="e#723#1143#0" />
             <element signature="e#1200#1672#0" />
             <element signature="e#1716#2146#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Backend.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="392" column="4" lean-forward="true" selection-start-line="392" selection-start-column="4" selection-end-line="392" selection-end-column="4" />
+          <folding>
+            <element signature="e#21#44#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/GUI.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
+          <folding>
+            <element signature="e#0#20#0" expanded="true" />
+            <element signature="e#268#1180#0" />
+            <element signature="e#1215#4776#0" />
+            <element signature="e#4812#11363#0" />
+            <element signature="e#11402#15728#0" />
+            <element signature="e#15773#17797#0" />
+            <element signature="e#17855#23629#0" />
+            <element signature="e#23711#25368#0" />
+            <element signature="e#27524#27785#0" />
+            <element signature="e#27832#28869#0" />
+            <element signature="e#28915#29233#0" />
+            <element signature="e#29272#30369#0" />
+            <element signature="e#30406#30625#0" />
+            <element signature="e#30663#30784#0" />
           </folding>
         </state>
       </provider>

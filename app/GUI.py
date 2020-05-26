@@ -376,6 +376,7 @@ class Application(tk.Frame):
         email = email[1:]
 
         editwindow = tk.Toplevel()
+        editwindow.resizable(False, False)
         window_width = 350
         window_height = 100
         x_position = (self.screen_width / 2) - (window_width / 2)
@@ -385,18 +386,18 @@ class Application(tk.Frame):
 
         # Message
         msg_label = tk.Label(editwindow, text=('Type in the new ' + attribute + '.'), font=('bold', 14))
-        msg_label.grid(row=0, column=0, columnspan=3, sticky=tk.W)
+        msg_label.place(relx=0.5, rely=0.2, anchor='center')
 
         user_input = tk.StringVar()
         edit_entry = tk.Entry(editwindow, textvariable=user_input)
-        edit_entry.grid(row=1, column=0)
+        edit_entry.place(relx=0.5, rely=0.5, anchor='center')
         edit_entry.focus()
 
         update_btn = tk.Button(editwindow, text='Update', width=12, command=lambda: self.backend.updateCustomer(attribute, user_input.get(), email, editwindow, listbox, delete_btn))
-        update_btn.grid(row=2, column=0)
+        update_btn.place(relx=0.3, rely=0.8, anchor='center')
 
         cancel_btn = tk.Button(editwindow, text='Cancel', width=12, command=lambda: editwindow.destroy())
-        cancel_btn.grid(row=2, column=1)
+        cancel_btn.place(relx=0.7, rely=0.8, anchor='center')
 
         # Destroy edit window if there already is one
         edit_btn.bind('<Button-1>', lambda x: editwindow.destroy())
@@ -551,14 +552,14 @@ class Application(tk.Frame):
         confirm_label = tk.Label(confirmWindow,
                                  text=('Are you sure you want to delete this customer?\n Email: ' + email),
                                  font=('bold', 14))
-        confirm_label.grid(row=0, column=0, columnspan=3, sticky=tk.W)
+        confirm_label.place(relx=0.5, rely=0.3, anchor='center')
 
         delete_btn = tk.Button(confirmWindow, text='Delete', width=12,
                                command=lambda: self.backend.deleteCustomer(cust_list, confirmWindow))
-        delete_btn.grid(row=1, column=1)
+        delete_btn.place(relx=0.3, rely=0.7, anchor='center')
 
-        remove_btn = tk.Button(confirmWindow, text='Cancel', width=12, command=lambda: confirmWindow.destroy())
-        remove_btn.grid(row=1, column=2)
+        cancel_btn = tk.Button(confirmWindow, text='Cancel', width=12, command=lambda: confirmWindow.destroy())
+        cancel_btn.place(relx=0.7, rely=0.7, anchor='center')
 
         parent_delete_btn.bind('<Button-1>', lambda x: confirmWindow.destroy())
 
@@ -587,23 +588,23 @@ class Application(tk.Frame):
             confirm_label = tk.Label(confirmWindow,
                                      text=('There are no customer records.'),
                                      font=('bold', 14))
-            confirm_label.grid(row=0, column=0, columnspan=3, sticky=tk.W)
+            confirm_label.place(relx=0.5, rely=0.3, anchor='center')
 
             remove_btn = tk.Button(confirmWindow, text='OK', width=12, command=lambda: confirmWindow.destroy())
-            remove_btn.grid(row=1, column=2)
+            remove_btn.place(relx=0.5, rely=0.7, anchor='center')
             return True
         else:
             # Confirmation Message
             confirm_label = tk.Label(confirmWindow,
                                      text=('Are you sure you want to delete all customers?'),
                                      font=('bold', 14))
-            confirm_label.grid(row=0, column=0, columnspan=3, sticky=tk.W)
+            confirm_label.place(relx=0.5, rely=0.3, anchor='center')
 
             delete_btn = tk.Button(confirmWindow, text='Delete', width=12, command=lambda: self.backend.deleteAllCustomers(cust_list, confirmWindow))
-            delete_btn.grid(row=1, column=1)
+            delete_btn.place(relx=0.3, rely=0.7, anchor='center')
 
             remove_btn = tk.Button(confirmWindow, text='Cancel', width=12, command=lambda: confirmWindow.destroy())
-            remove_btn.grid(row=1, column=2)
+            remove_btn.place(relx=0.7, rely=0.7, anchor='center')
 
         parent_delete_all_btn.bind('<Button-1>', lambda x: confirmWindow.destroy())
         return True
@@ -615,7 +616,7 @@ class Application(tk.Frame):
 
         # Message
         msg_label = tk.Label(editWindow, text='Edit has been made.', font=('bold', 14))
-        msg_label.grid(row=0, column=0, columnspan=3, sticky=tk.W)
+        msg_label.grid(row=0, column=0, columnspan=3)
 
         return
 

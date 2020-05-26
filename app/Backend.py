@@ -25,6 +25,9 @@ class Backend:
 
     """
     Class that contains all the logistics of manipulating widgets and data.
+
+    TODO:
+    FINISH DOCUMENTATION
     """
 
     def __init__(self, app, window):
@@ -390,6 +393,9 @@ class Backend:
         :param delete_btn:
         :return:
         """
+
+        if user_input == '':
+            return
 
         # Dictionary mapping of the column names to their front end equivalent name
         attributes = {'Email': 'email',
