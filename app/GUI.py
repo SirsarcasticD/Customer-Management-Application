@@ -150,7 +150,7 @@ class Application(tk.Frame):
         requests_label = tk.Label(self.window, text='Requests:', font=('bold', 14))
         requests_label.place(relx=0.05, rely=0.10)
 
-        # Customer Info List
+        # request List
         request_list = tk.Listbox(self.window, height=12, width=50, name='requests')
         request_list.place(relx=0.05, rely=0.15)
         request_list.bind('<Button-1>', lambda x: self.backend.enableApproveAndDeclineBtn(request_feedback))
@@ -611,12 +611,18 @@ class Application(tk.Frame):
 
     def confirmEditWindow(self, editWindow):
 
+        """
+        Function that clears edit window and displays message that edit has been successful.
+        :param editWindow: A tk window object
+        :return:
+        """
+
         for widget in editWindow.winfo_children():
             widget.destroy()
 
         # Message
-        msg_label = tk.Label(editWindow, text='Edit has been made.', font=('bold', 14))
-        msg_label.grid(row=0, column=0, columnspan=3)
+        msg_label = tk.Label(editWindow, text='Edit has been successfully made.', font=('bold', 14))
+        msg_label.place(relx=0.5, rely=0.5, anchor='center')
 
         return
 
@@ -660,48 +666,6 @@ class Application(tk.Frame):
         # Credentials label
         current_admin_label = tk.Label(self.window, text='Logged in as ' + self.backend.user, font=('bold', 14))
         current_admin_label.place(relx=0.01, rely=0.95)
-
-    def animateLogin(self):
-
-        main_menu_main_frame = self.window.nametowidget('main_menu_main_frame')
-
-        main_menu_main_frame.place(rely=-0.01, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place(rely=-0.02, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place(rely=-0.04, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place(rely=-0.08, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place(rely=-0.16, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place(rely=-0.32, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place(rely=-0.64, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place(rely=-0.90, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place(rely=-0.95, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place(rely=-0.975, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place(rely=-0.99, relx=0)
-        self.window.update()
-
-        main_menu_main_frame.place_forget()
-        self.window.update()
-
-        return
 
     def clearFrame(self):
 

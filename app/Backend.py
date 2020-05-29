@@ -103,7 +103,7 @@ class Backend:
                 self.user = user_username
                 self.app.customerMenu()
             else:
-                response_msg.set('Please contact the administrator')
+                response_msg.set('Cannot log you in.')
                 return False
 
         return True
@@ -337,7 +337,7 @@ class Backend:
             return
 
         # Get emails that begin with user_input string
-        data = self.db.emailsContaining(user_input)
+        data = self.db.emailsBeginningWith(user_input)
 
         # If there are no emails. Do nothing
         if len(data) < 1:
@@ -348,7 +348,7 @@ class Backend:
             autoCompleteList.insert(i, email)
 
         # Display list
-        autoCompleteList.place(x=215, y=86)
+        autoCompleteList.place(x=230, y=90)
 
         return True
 
@@ -448,8 +448,13 @@ class Backend:
         clicked_item_index = clicked_items[0]
 
         selected_info = list_box.get(clicked_item_index)
+
+        if 'Email' in selected_info:
+            return
+
         if ':' in selected_info:
             edit_btn['state'] = 'normal'
+            self.window.update()
 
         return True
 
@@ -462,6 +467,8 @@ class Backend:
 
         edit_btn = self.window.nametowidget('edit_btn')
         edit_btn['state'] = 'disabled'
+        self.window.update()
+        return
 
     def generateRandomCustomers(self, number_input, feedback_msg, limit_current_msg):
 
@@ -682,8 +689,10 @@ class Backend:
     def getRequests(self, request_list, request_notification):
 
         """
-
-        :param request_list:
+        Function to populate the request listbox with the emails of those who are requesting an account.
+        Also update the request_notification label with the current number of requests.
+        :param request_list: The request listbox
+        :param request_notification: A tk label object that will display the number of current requests in the form of a string.
         :return:
         """
 
@@ -750,7 +759,7 @@ class Backend:
     def disableApproveAndDeclineBtn(self, request_feedback):
 
         """
-
+        Function to disable the buttons that can approve and decline the requests of new users.
         :return:
         """
 
@@ -944,7 +953,7 @@ class Backend:
         """
         Function to submit request for an account. These requests will appear in the admin menu.
 
-        :param email:
+        :param email: The email of the user requesting an account
         :return:
         """
 
@@ -979,6 +988,25 @@ class Backend:
         return True
 
     def searchUser(self, username, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var, search_fdbk):
+
+        """
+        Function to search for a particulart user in the database from the admin menu and update the checkboxes that
+        represent their permissions. These permissions represent the user's access to particular functionalities/buttons
+        within the application.
+
+        :param username: The username of the user being searched for.
+         :param login_var: A tk IntVar that represents the value of the login permission
+        :param edit_var: A tk IntVar that represents the value of the edit_customer permission
+        :param delete_var: A tk IntVar that represents the value of the delete_customer permission
+        :param delete_all_var: A tk IntVar that represents the value of the delete_all_customer permission
+        :param add_var: A tk IntVar that represents the value of the add_customer permission
+        :param analyze_var: A tk IntVar that represents the value of the analyze_customer permission
+        :param user_fdbk: The tk label object that will contain the system feedback for the user in the form of a string.
+        :return:
+        """
+
+        if username == '':
+            return
 
         response = self.db.checkUserExists(username)
 
@@ -1026,6 +1054,7 @@ class Backend:
     def emailNewUserCredentials(self, user_email, user_password):
 
         """
+        Function to send an email to the new approved user containing their login credentials.
 
         :return:
         """
@@ -1063,15 +1092,17 @@ class Backend:
     def changeUserPermissions(self, username, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var, user_fdbk):
 
         """
+        Function to change the permissions of a user. The permissions typically represent access to buttons/functionalities
+        of the application that can manipulate customers/data.
 
-        :param username:
-        :param login_var:
-        :param edit_var:
-        :param delete_var:
-        :param delete_all_var:
-        :param add_var:
-        :param analyze_var:
-        :param user_fdbk:
+        :param username: The username of the user
+        :param login_var: A tk IntVar that represents the value of the login permission
+        :param edit_var: A tk IntVar that represents the value of the edit_customer permission
+        :param delete_var: A tk IntVar that represents the value of the delete_customer permission
+        :param delete_all_var: A tk IntVar that represents the value of the delete_all_customer permission
+        :param add_var: A tk IntVar that represents the value of the add_customer permission
+        :param analyze_var: A tk IntVar that represents the value of the analyze_customer permission
+        :param user_fdbk: The tk label object that will contain the system feedback for the user in the form of a string.
         :return:
         """
 
@@ -1084,16 +1115,16 @@ class Backend:
 
         return True
 
-    # Add resetting of checkboxes?
     def deleteUser(self, username, user_fdbk):
 
         """
-
-        :param username:
-        :param search_fdbk:
+        Function to delete the user from the database. This function is only accessed from the admin menu.
+        :param username: The username of the user to be deleted
+        :param user_fdbk: The tk label object that will contain the system feedback for the user in the form of a string.
         :return:
         """
 
+        # The feedback string
         feedback = ''
 
         response = self.db.deleteUser(username)
@@ -1110,6 +1141,7 @@ class Backend:
         else:
             feedback += 'Permissions could not be deleted. Contact db admin.\n'
 
+        # Set the feedback
         user_fdbk.set(feedback)
 
             # Disable buttons and checkboxes
@@ -1138,14 +1170,17 @@ class Backend:
         delete_user_btn['state'] = 'disabled'
         change_perm_btn['state'] = 'disabled'
 
-        return
+        return True
 
     def autoCompleteUser(self, autoCompleteList, user_input, user_fdbk, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var):
 
         """
+        Function to populate a dropdown listbox that contains all usernames in teh datatbase that start
+        with the user_input string. This listbox is initialized in the GUI and hidden. It will only be revealed
+        when there are 1 or more greater usernames that begin with the user_input string.
 
-        :param auto_complete_list:
-        :param user_input:
+        :param auto_complete_list: The listbox that will hold and display the usernames.
+        :param user_input: The string that represents the username the user is looking for.
         :return:
         """
 
@@ -1196,8 +1231,8 @@ class Backend:
         if len(data) < 1:
             return False
 
-        for i, email in enumerate(data):
-            autoCompleteList.insert(i, email)
+        for i, username in enumerate(data):
+            autoCompleteList.insert(i, username)
 
         autoCompleteList.place(x=500, y=416)
 
@@ -1206,6 +1241,8 @@ class Backend:
     def selectFromAutoCompleteUser(self, autoCompleteList, user_input_field):
 
         """
+        This function will take the selected item from the autocomplete listbox and set the entry value equal
+        to the selected item. The listbox will then be cleared and hidden.
 
         :return:
         """

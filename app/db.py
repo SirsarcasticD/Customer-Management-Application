@@ -10,6 +10,7 @@ class Database:
 
     TODO:
     Create class for each relation?
+    FINISH DOCUMENTATION
     """
 
     def __init__(self, dbname):
@@ -279,6 +280,12 @@ class Database:
 
     def populateEconomicRegions(self):
 
+        """
+        Function to populate and display the choropleth graph of the regions of canada. The shade represents the
+        number of customers from that particular region.
+        :return:
+        """
+
         with open('lib/canadian_region_uids.pickle', 'rb') as handle:
             eruids = pickle.load(handle)
 
@@ -367,6 +374,27 @@ class Database:
     def insertFullCustomer(self, email, password, firstname, lastname, country, region, address, postalcode, balance, preferredCard, rating,
         status, cycledate, type, bday):
 
+        """
+        Function to insert a customer into the database with all the data initialized/available.
+
+        :param email:
+        :param password:
+        :param firstname:
+        :param lastname:
+        :param country:
+        :param region:
+        :param address:
+        :param postalcode:
+        :param balance:
+        :param preferredCard:
+        :param rating:
+        :param status:
+        :param cycledate:
+        :param type:
+        :param bday:
+        :return:
+        """
+
         self.connect()
         sqlQuery = """
                     INSERT INTO customer
@@ -412,11 +440,11 @@ class Database:
             self.disconnect()
         return True
 
-    def emailsContaining(self, user_input):
+    def emailsBeginningWith(self, user_input):
 
         """
-
-        :param user_input:
+        Function to get all the customers with emails that begin with the user_input parameter.
+        :param user_input: The user_input in the form of a string.
         :return:
         """
 
@@ -443,6 +471,15 @@ class Database:
     # In progress
     def updateCustomer(self, attribute, user_input, email):
 
+        """
+        Function to update a customer record matching the email parameter by setting the attribute parameter to the
+        user_input parameter.
+        :param attribute String:  The attribute to be edited/updated.
+        :param user_input String: The new value the attribute will be equal to.
+        :param email String: The email of the customer to be edited.
+        :return:
+        """
+
         self.connect()
         sqlQuery = ("""
                     UPDATE Customer
@@ -465,7 +502,7 @@ class Database:
     def selectNumberOfCustomerRecords(self):
 
         """
-
+        Function to find the number of records in the customer relation.
         :return:
         """
 
@@ -599,6 +636,12 @@ class Database:
 
     def getErnameFromEruid(self, eruid):
 
+        """
+        Function to get the economic_region.eruid using the ername.
+        :param eruid:
+        :return:
+        """
+
         self.connect()
         sqlQuery = """
                      SELECT ername FROM economic_region
@@ -618,7 +661,7 @@ class Database:
     def getRequests(self):
 
         """
-
+        Function to get all emails in the request relation.
         :return:
         """
 
@@ -639,10 +682,13 @@ class Database:
     def addUser(self, email, password):
 
         """
-
+        Function to add a user into the User relation.
+        :param email String: The email of the new user.
+        :param password String: The password of the new user.
         :return:
         """
 
+        # Set their status to default value of 1
         defaultStatus = 1
 
         self.connect()
@@ -663,15 +709,16 @@ class Database:
     def setPermissions(self, email, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var):
 
         """
+        Function to set the permissions of a user. The permissions represent the functionalities/buttons the user
+        has access to within the application.
 
-
-        :param email:
-        :param login_var:
-        :param edit_var:
-        :param delete_var:
-        :param delete_all_var:
-        :param add_var:
-        :param analyze_var:
+        :param email: The email of the user
+        :param login_var: A tk IntVar value that represents the value of the login permission
+        :param edit_var: A tk IntVar value that represents the value of the edit_customer permission
+        :param delete_var: A tk IntVar value that represents the value of the delete_customer permission
+        :param delete_all_var: A tk IntVar value that represents the value of the delete_all_customer permission
+        :param add_var: A tk IntVar that value represents the value of the add_customer permission
+        :param analyze_var: A tk IntVar value that represents the value of the analyze_customer permission
         :return:
         """
         self.connect()
@@ -693,14 +740,15 @@ class Database:
     def changeUserPermissions(self, email, login_var, edit_var, delete_var, delete_all_var, add_var, analyze_var):
 
         """
+        Function to change the permissions of a user.
 
-        :param email:
-        :param login_var:
-        :param edit_var:
-        :param delete_var:
-        :param delete_all_var:
-        :param add_var:
-        :param analyze_var:
+        :param email: The email of the user
+        :param login_var: A tk IntVar value that represents the value of the login permission
+        :param edit_var: A tk IntVar value that represents the value of the edit_customer permission
+        :param delete_var: A tk IntVar value that represents the value of the delete_customer permission
+        :param delete_all_var: A tk IntVar value that represents the value of the delete_all_customer permission
+        :param add_var: A tk IntVar that value represents the value of the add_customer permission
+        :param analyze_var: A tk IntVar value that represents the value of the analyze_customer permission
         :return:
         """
 
@@ -729,8 +777,8 @@ class Database:
     def submitRequest(self, email):
 
         """
-
-        :param email:
+        Function to add request into the request relation.
+        :param email: The email of the user requesting an account
         :return:
         """
 
@@ -754,8 +802,8 @@ class Database:
     def checkReqeustExists(self, email):
 
         """
-
-        :param email:
+        Function to check if there exists a request in the request relation equal to the email parameter.
+        :param email: The email to be checked for.
         :return:
         """
 
@@ -779,8 +827,8 @@ class Database:
     def removeRequest(self, email):
 
         """
-
-        :param email:
+        Function to remove a request from the request relation equal to the email parameter.
+        :param email: The email to be removed
         :return:
         """
 
@@ -804,7 +852,8 @@ class Database:
     def checkUserExists(self, email):
 
         """
-
+        Function to check if there exists a user in the User relation with a username that equals to the email param.
+        :param email: The email to be checked for.
         :return:
         """
 
@@ -828,7 +877,8 @@ class Database:
     def deleteUser(self, username):
 
         """
-
+        Function to delete a user from the User relation equal to the username param.
+        :param username: The username of the user to be deleted. Typically an email.
         :return:
         """
 
@@ -850,8 +900,8 @@ class Database:
     def usernameContaining(self, user_input):
 
         """
-
-        :param user_input:
+        Function to check if there exists a username beginning with the user_input param string.
+        :param user_input: The input passed from the user.
         :return:
         """
 
@@ -880,15 +930,16 @@ class Database:
     def deletePermissions(self, username):
 
         """
-
-               :return:
-               """
+        Function to delete the permissions record of the user who's username is equal to the username param.
+        :param username: The username of the user who's permissions record will be deleted from the permissions table.
+        :return:
+        """
 
         self.connect()
         sqlQuery = """
-                           DELETE FROM Permission
-                           WHERE user = ?;
-                          """
+                   DELETE FROM Permission
+                   WHERE user = ?;
+                   """
         try:
             sqlTuple = (username,)
             self.cursor.execute(sqlQuery, sqlTuple)
