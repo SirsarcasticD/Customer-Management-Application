@@ -9,14 +9,14 @@ A customer management system for a hypothetical company, designed with [tkinter]
 
 ![](https://github.com/SirsarcasticD/Customer-Management-Application/blob/master/app/lib/Images/add_customers.png)
 
-### Even Manage Users of the Management Application.
+### Manage Users of the Management Application.
 #### Maintain permissions to different functionalities.
 
 ![](https://github.com/SirsarcasticD/Customer-Management-Application/blob/master/app/lib/Images/admin_menu.png)
 
-### Request user account through the application and receive the credentials by email once approved.
+#### Request a user account through the application and receive the credentials by email once approved.
 
 ![](https://github.com/SirsarcasticD/Customer-Management-Application/blob/master/app/lib/Images/make_request.png)
 
-![](https://github.com/SirsarcasticD/Customer-Management-Application/blob/master/app/lib/Images/respond_menu.png)
+![](https://github.com/SirsarcasticD/Customer-Management-Application/blob/master/app/lib/Images/request.png)
 
