@@ -355,7 +355,7 @@ class Database:
 
         self.connect()
         sqlQuery = """
-                    INSERT INTO Customer (email, pword, fname, lname, country, city, address, bday)
+                    INSERT INTO Customer (email, pword, fname, lname, country, region, address, bday)
                     VALUES  (?, ?, ?, ?, ?, ?, ?, ?);
                     """
         sqlTuple = (email, pword, fname, lname, country, region, address, dob)
