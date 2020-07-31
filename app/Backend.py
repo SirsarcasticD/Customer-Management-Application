@@ -1005,6 +1005,8 @@ class Backend:
         :return:
         """
 
+        search_fdbk.set("")
+        
         if username == '':
             return
 
